@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MoneyPulse — Smart Investment Advisor</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-primary: #ffffff; --bg-secondary: #f5f5f4; --bg-tertiary: #eeece8;
+    --text-primary: #1a1a18; --text-secondary: #6b6b67;
+    --border-light: rgba(0,0,0,0.12); --border-mid: rgba(0,0,0,0.22);
+    --radius-md: 8px; --radius-lg: 12px;
+    --blue: #185FA5; --blue-light: #E6F1FB; --blue-dark: #0C447C;
+    --green-text: #27500A; --green-bg: #EAF3DE;
+    --amber-text: #633806; --amber-bg: #FAEEDA;
+    --red-text: #791F1F; --red-bg: #FCEBEB;
+    --dot-green: #639922; --dot-red: #E24B4A;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #1e1e1c; --bg-secondary: #2a2a28; --bg-tertiary: #2c2c2a;
+      --text-primary: #f0ede8; --text-secondary: #9a9a94;
+      --border-light: rgba(255,255,255,0.1); --border-mid: rgba(255,255,255,0.2);
+      --blue: #378ADD; --blue-light: #042C53; --blue-dark: #B5D4F4;
+      --green-text: #C0DD97; --green-bg: #173404;
+      --amber-text: #FAC775; --amber-bg: #412402;
+      --red-text: #F7C1C1; --red-bg: #501313;
+      --dot-green: #97C459; --dot-red: #F09595;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg-tertiary); color: var(--text-primary); min-height: 100vh; }
+
+  /* Login */
+  .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+  .login-card { background: var(--bg-primary); border: 0.5px solid var(--border-light); border-radius: 20px; padding: 3rem 2.5rem; text-align: center; max-width: 420px; width: 100%; }
+  .login-logo { font-size: 36px; font-weight: 800; letter-spacing: -1px; margin-bottom: 6px; }
+  .login-logo span { color: var(--blue); }
+  .login-tagline { font-size: 14px; color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.6; }
+  .login-features { text-align: left; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 10px; }
+  .login-feature { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary); }
+  .feature-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dot-green); flex-shrink: 0; }
+  .google-btn { width: 100%; padding: 13px 20px; background: var(--bg-primary); border: 1px solid var(--border-mid); border-radius: var(--radius-md); font-size: 15px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-primary); }
+  .google-btn:hover { background: var(--bg-secondary); }
+  .google-icon { width: 20px; height: 20px; flex-shrink: 0; }
+  .login-note { font-size: 11px; color: var(--text-secondary); margin-top: 14px; line-height: 1.6; }
+
+  /* App */
+  .app-screen { display: none; }
+  .app-wrap { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+  .header { margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .header-left h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .header-left h1 span { color: var(--blue); }
+  .header-left p { font-size: 13px; color: var(--text-secondary); margin-top: 3px; }
+  .user-info { display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border-light); }
+  .user-name { font-size: 13px; color: var(--text-secondary); }
+  .signout-btn { font-size: 12px; color: var(--blue); background: none; border: none; cursor: pointer; padding: 0; display: block; margin-top: 2px; }
+  .signout-btn:hover { text-decoration: underline; }
+
+  /* Nav */
+  .nav-tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; border-bottom: 0.5px solid var(--border-light); }
+  .nav-tab { padding: 9px 20px; font-size: 14px; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; border-top: none; border-left: none; border-right: none; }
+  .nav-tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 500; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Search */
+  .search-bar { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .search-bar input { flex: 1; padding: 10px 14px; border: 0.5px solid var(--border-mid); border-radius: var(--radius-md); font-size: 14px; background: var(--bg-primary); color: var(--text-primary); outline: none; }
+  .search-bar input:focus { border-color: var(--blue); }
+  .search-bar button { padding: 10px 18px; border-radius: var(--radius-md); border: 0.5px solid var(--border-mid); background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; cursor: pointer; }
+
+  /* Filter tabs */
+  .filter-tabs { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .ftab { padding: 5px 13px; border-radius: 20px; border: 0.5px solid var(--border-light); font-size: 12px; cursor: pointer; background: var(--bg-primary); color: var(--text-secondary); }
+  .ftab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  /* Asset grid */
+  .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 9px; margin-bottom: 1rem; }
+  .asset-card { background: var(--bg-primary); border: 0.5px solid var(--border-light); border-radius: var(--radius-lg); padding: 12px; cursor: pointer; transition: border-color 0.15s; }
+  .asset-card:hover { border-color: var(--border-mid); }
+  .asset-card.selected { border: 2px solid var(--blue); }
+  .asset-name { font-size: 13px; font-weight: 500; }
+  .asset-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .asset-badge { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 10px; margin-top: 5px; }
+  .badge-stock { background: #E6F1FB; color: #0C447C; }
+  .badge-crypto { background: #FAECE7; color: #712B13; }
+  .badge-commodity { background: #FAEEDA; color: #633806; }
+  .badge-etf { background: #EAF3DE; color: #27500A; }
+  .badge-sip { background: #EEEDFE; color: #3C3489; }
+
+  /* Timeframe */
+  .tf-row { display: flex; gap: 6px; margin-bottom: 1rem; align-items: center; }
+  .tf-row span { font-size: 12px; color: var(--text-secondary); }
+  .tf-btn { padding: 5px 12px; border-radius: 12px; border: 0.5px solid var(--border-light); font-size: 12px; cursor: pointer; background: var(--bg-primary); color: var(--text-secondary); }
+  .tf-btn.active { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
+  .analyze-btn { width: 100%; padding: 13px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius-md); font-size: 15px; font-weight: 500; cursor: pointer; margin-bottom: 1.5rem; }
+  .analyze-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .analyze-btn:hover:not(:disabled) { background: var(--blue-dark); }
+
+  /* Results */
+  .result-card { background: var(--bg-primary); border: 0.5px solid var(--border-light); border-radius: var(--radius-lg); padding: 1.2rem; margin-bottom: 1rem; }
+  .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+  .result-name { font-size: 17px; font-weight: 500; }
+  .verdict { padding: 5px 18px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+  .verdict-buy { background: var(--green-bg); color: var(--green-text); }
+  .verdict-hold { background: var(--amber-bg); color: var(--amber-text); }
+  .verdict-sell { background: var(--red-bg); color: var(--red-text); }
+  .slabel { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin: 10px 0 4px; }
+  .reason-row { display: flex; gap: 8px; font-size: 13px; line-height: 1.5; margin-bottom: 4px; align-items: flex-start; }
+  .dot-g { width: 7px; height: 7px; border-radius: 50%; background: var(--dot-green); margin-top: 5px; flex-shrink: 0; }
+  .dot-r { width: 7px; height: 7px; border-radius: 50%; background: var(--dot-red); margin-top: 5px; flex-shrink: 0; }
+  .dot-n { width: 7px; height: 7px; border-radius: 50%; background: var(--text-secondary); margin-top: 5px; flex-shrink: 0; }
+  .sbox { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 10px 13px; margin-top: 6px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  .sbox-bold { color: var(--text-primary); font-weight: 500; }
+
+  /* Loading */
+  .loading-wrap { text-align: center; padding: 2.5rem; color: var(--text-secondary); font-size: 14px; }
+  .spinner { width: 28px; height: 28px; border: 2px solid var(--border-light); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .step-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; justify-content: center; }
+  .step-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--blue); animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+  /* Portfolio */
+  .card { background: var(--bg-primary); border: 0.5px solid var(--border-light); border-radius: var(--radius-lg); padding: 1.2rem; margin-bottom: 1rem; }
+  .form-row { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; align-items: end; }
+  @media(max-width:600px) { .form-row { grid-template-columns: 1fr 1fr; } .form-row .add-btn { grid-column: 1/-1; } }
+  .form-group label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+  .form-group input { width: 100%; padding: 9px 11px; border: 0.5px solid var(--border-mid); border-radius: var(--radius-md); font-size: 13px; background: var(--bg-primary); color: var(--text-primary); outline: none; }
+  .add-btn { padding: 9px 16px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius-md); font-size: 13px; cursor: pointer; height: 36px; }
+  .holdings-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .holdings-table th { text-align: left; padding: 7px 10px; font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 0.5px solid var(--border-light); }
+  .holdings-table td { padding: 9px 10px; border-bottom: 0.5px solid var(--border-light); }
+  .holdings-table tr:last-child td { border-bottom: none; }
+  .del-btn { background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 18px; padding: 0 4px; }
+  .del-btn:hover { color: var(--dot-red); }
+  .empty-state { text-align: center; padding: 2rem; color: var(--text-secondary); font-size: 13px; }
+  .summary-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1rem; }
+  @media(max-width:500px) { .summary-stats { grid-template-columns: 1fr 1fr; } }
+  .stat-card { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 12px; }
+  .stat-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+  .stat-value { font-size: 20px; font-weight: 500; }
+  .port-analyze-btn { width: 100%; padding: 13px; background: #3B6D11; color: #EAF3DE; border: none; border-radius: var(--radius-md); font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 1rem; }
+  .port-analyze-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .port-analyze-btn:hover:not(:disabled) { background: #27500A; }
+  .error-box { background: var(--red-bg); border-radius: var(--radius-md); padding: 12px 16px; font-size: 13px; color: var(--red-text); line-height: 1.5; }
+  .disclaimer { font-size: 11px; color: var(--text-secondary); text-align: center; margin-top: 2rem; line-height: 1.7; }
+  .autocomplete-wrap { position: relative; flex: 1; }
+  .autocomplete-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 0.5px solid var(--border-mid); border-radius: var(--radius-md); z-index: 999; max-height: 240px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .autocomplete-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; font-size: 13px; gap: 10px; }
+  .autocomplete-item:hover, .autocomplete-item.active { background: var(--bg-secondary); }
+  .autocomplete-item-left { display: flex; flex-direction: column; }
+  .autocomplete-item-name { font-weight: 500; color: var(--text-primary); }
+  .autocomplete-item-sub { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+  .autocomplete-badge { font-size: 10px; padding: 2px 7px; border-radius: 8px; flex-shrink: 0; }
+  .autocomplete-empty { padding: 12px 14px; font-size: 13px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">Money<span>Pulse</span></div>
+    <p class="login-tagline">AI-powered investment advisor for stocks, crypto,<br>gold, ETFs &amp; SIPs — Indian &amp; global markets</p>
+    <div class="login-features">
+      <div class="login-feature"><div class="feature-dot"></div>Deep analysis of 5Y &amp; 10Y market trends</div>
+      <div class="login-feature"><div class="feature-dot"></div>Clear BUY / HOLD / SELL verdicts with reasoning</div>
+      <div class="login-feature"><div class="feature-dot"></div>Personal portfolio tracker &amp; AI advice</div>
+      <div class="login-feature"><div class="feature-dot"></div>Covers NSE, NASDAQ, Crypto &amp; commodities</div>
+    </div>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Continue with Google
+    </button>
+    <p class="login-note">Free to use. No API key needed. Sign in once, use forever.</p>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div class="app-screen" id="appScreen">
+  <div class="app-wrap">
+    <div class="header">
+      <div class="header-left">
+        <h1>Money<span>Pulse</span></h1>
+        <p>AI-powered investment advisor · NSE · BSE · MCX · Crypto · Mutual Funds</p>
+      </div>
+      <div class="user-info">
+        <img class="user-avatar" id="userAvatar" src="" alt="" />
+        <div>
+          <div class="user-name" id="userName"></div>
+          <button class="signout-btn" onclick="signOut()">Sign out</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchNav('analyze',this)">Analyze markets</button>
+      <button class="nav-tab" onclick="switchNav('portfolio',this)">My portfolio</button>
+    </div>
+
+    <div id="sec-analyze" class="section active">
+      <div class="search-bar">
+        <div class="autocomplete-wrap">
+          <input id="searchInput" type="text" placeholder="Search any asset (e.g. HDFC Bank, Bitcoin, Nifty ETF...)" autocomplete="off" />
+          <div class="autocomplete-dropdown" id="searchDropdown" style="display:none"></div>
+        </div>
+        <button onclick="addCustomAsset()">Add</button>
+      </div>
+      <div class="filter-tabs">
+        <div class="ftab active" onclick="filterTab('all',this)">All</div>
+        <div class="ftab" onclick="filterTab('stock',this)">Stocks</div>
+        <div class="ftab" onclick="filterTab('crypto',this)">Crypto</div>
+        <div class="ftab" onclick="filterTab('commodity',this)">Gold &amp; Silver</div>
+        <div class="ftab" onclick="filterTab('etf',this)">ETFs</div>
+        <div class="ftab" onclick="filterTab('sip',this)">SIPs</div>
+      </div>
+      <div id="assetGrid" class="asset-grid"></div>
+      <div class="tf-row">
+        <span>Analyze:</span>
+        <div class="tf-btn active" onclick="setTF('5Y',this)">5 years</div>
+        <div class="tf-btn" onclick="setTF('10Y',this)">10 years</div>
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()" disabled>Select assets to analyze</button>
+      <div id="results"></div>
+    </div>
+
+    <div id="sec-portfolio" class="section">
+      <div class="card">
+        <div style="font-size:15px;font-weight:500;margin-bottom:14px">Add holding</div>
+        <div class="form-row">
+          <div class="form-group" style="position:relative"><label>Asset name</label>
+            <input id="p-name" type="text" placeholder="e.g. Reliance, Bitcoin, Gold" autocomplete="off" />
+            <div class="autocomplete-dropdown" id="portDropdown" style="display:none"></div>
+          </div>
+          <div class="form-group"><label>Quantity</label><input id="p-qty" type="number" placeholder="e.g. 10" min="0" step="any" /></div>
+          <div class="form-group"><label>Buy price (₹)</label><input id="p-price" type="number" placeholder="e.g. 2450" min="0" step="any" /></div>
+          <button class="add-btn" onclick="addHolding()">Add</button>
+        </div>
+      </div>
+      <div id="holdingsWrap"><div class="empty-state">No holdings yet. Add your first asset above.</div></div>
+      <button class="port-analyze-btn" id="portBtn" onclick="runPortfolioAnalysis()" disabled>Get AI advice on my portfolio</button>
+      <div id="portResults"></div>
+    </div>
+
+    <div class="disclaimer">MoneyPulse provides AI-generated analysis for informational purposes only.<br>Always consult a SEBI-registered financial advisor before making investment decisions.</div>
+  </div>
+</div>
+
+<script>
+// ── REPLACE with your Google Client ID (from Google Cloud Console) ──
+const GOOGLE_CLIENT_ID = '882799123179-bac4oq0vshs7q3j7g32i94j08q6qd1to.apps.googleusercontent.com';
+// ───────────────────────────────────────────────────────────────────
+
+const ASSETS = [
+  // ── NIFTY 50 STOCKS ──────────────────────────────────────
+  {id:'rel',name:'Reliance Industries',sub:'NSE · RELIANCE',type:'stock'},
+  {id:'tcs',name:'TCS',sub:'NSE · TCS',type:'stock'},
+  {id:'hdfcbank',name:'HDFC Bank',sub:'NSE · HDFCBANK',type:'stock'},
+  {id:'infy',name:'Infosys',sub:'NSE · INFY',type:'stock'},
+  {id:'icicibank',name:'ICICI Bank',sub:'NSE · ICICIBANK',type:'stock'},
+  {id:'hindunilvr',name:'Hindustan Unilever',sub:'NSE · HINDUNILVR',type:'stock'},
+  {id:'itc',name:'ITC',sub:'NSE · ITC',type:'stock'},
+  {id:'sbi',name:'State Bank of India',sub:'NSE · SBIN',type:'stock'},
+  {id:'bajfinance',name:'Bajaj Finance',sub:'NSE · BAJFINANCE',type:'stock'},
+  {id:'bhartiartl',name:'Bharti Airtel',sub:'NSE · BHARTIARTL',type:'stock'},
+  {id:'kotakbank',name:'Kotak Mahindra Bank',sub:'NSE · KOTAKBANK',type:'stock'},
+  {id:'lti',name:'LTIMindtree',sub:'NSE · LTIM',type:'stock'},
+  {id:'hcltech',name:'HCL Technologies',sub:'NSE · HCLTECH',type:'stock'},
+  {id:'axisbank',name:'Axis Bank',sub:'NSE · AXISBANK',type:'stock'},
+  {id:'asianpaint',name:'Asian Paints',sub:'NSE · ASIANPAINT',type:'stock'},
+  {id:'maruti',name:'Maruti Suzuki',sub:'NSE · MARUTI',type:'stock'},
+  {id:'sunpharma',name:'Sun Pharmaceutical',sub:'NSE · SUNPHARMA',type:'stock'},
+  {id:'titan',name:'Titan Company',sub:'NSE · TITAN',type:'stock'},
+  {id:'ultracemco',name:'UltraTech Cement',sub:'NSE · ULTRACEMCO',type:'stock'},
+  {id:'wipro',name:'Wipro',sub:'NSE · WIPRO',type:'stock'},
+  {id:'nestleind',name:'Nestle India',sub:'NSE · NESTLEIND',type:'stock'},
+  {id:'techm',name:'Tech Mahindra',sub:'NSE · TECHM',type:'stock'},
+  {id:'indusindbk',name:'IndusInd Bank',sub:'NSE · INDUSINDBK',type:'stock'},
+  {id:'powergrid',name:'Power Grid Corporation',sub:'NSE · POWERGRID',type:'stock'},
+  {id:'ntpc',name:'NTPC',sub:'NSE · NTPC',type:'stock'},
+  {id:'ongc',name:'ONGC',sub:'NSE · ONGC',type:'stock'},
+  {id:'jswsteel',name:'JSW Steel',sub:'NSE · JSWSTEEL',type:'stock'},
+  {id:'tatamotors',name:'Tata Motors',sub:'NSE · TATAMOTORS',type:'stock'},
+  {id:'tatasteel',name:'Tata Steel',sub:'NSE · TATASTEEL',type:'stock'},
+  {id:'hdfclife',name:'HDFC Life Insurance',sub:'NSE · HDFCLIFE',type:'stock'},
+  {id:'sbilife',name:'SBI Life Insurance',sub:'NSE · SBILIFE',type:'stock'},
+  {id:'bajaj_auto',name:'Bajaj Auto',sub:'NSE · BAJAJ-AUTO',type:'stock'},
+  {id:'drreddy',name:'Dr Reddys Laboratories',sub:'NSE · DRREDDY',type:'stock'},
+  {id:'hindalco',name:'Hindalco Industries',sub:'NSE · HINDALCO',type:'stock'},
+  {id:'divislab',name:'Divis Laboratories',sub:'NSE · DIVISLAB',type:'stock'},
+  {id:'apollohosp',name:'Apollo Hospitals',sub:'NSE · APOLLOHOSP',type:'stock'},
+  {id:'cipla',name:'Cipla',sub:'NSE · CIPLA',type:'stock'},
+  {id:'eichermot',name:'Eicher Motors',sub:'NSE · EICHERMOT',type:'stock'},
+  {id:'coal',name:'Coal India',sub:'NSE · COALINDIA',type:'stock'},
+  {id:'grasim',name:'Grasim Industries',sub:'NSE · GRASIM',type:'stock'},
+  {id:'bpcl',name:'BPCL',sub:'NSE · BPCL',type:'stock'},
+  {id:'shreecem',name:'Shree Cement',sub:'NSE · SHREECEM',type:'stock'},
+  {id:'heromotoco',name:'Hero MotoCorp',sub:'NSE · HEROMOTOCO',type:'stock'},
+  {id:'britannia',name:'Britannia Industries',sub:'NSE · BRITANNIA',type:'stock'},
+  {id:'tataconsum',name:'Tata Consumer Products',sub:'NSE · TATACONSUM',type:'stock'},
+  {id:'adanient',name:'Adani Enterprises',sub:'NSE · ADANIENT',type:'stock'},
+  {id:'adaniports',name:'Adani Ports',sub:'NSE · ADANIPORTS',type:'stock'},
+  {id:'sbicard',name:'SBI Cards',sub:'NSE · SBICARD',type:'stock'},
+  {id:'bajajfinsv',name:'Bajaj Finserv',sub:'NSE · BAJAJFINSV',type:'stock'},
+  {id:'m_m',name:'Mahindra & Mahindra',sub:'NSE · M&M',type:'stock'},
+
+  // ── POPULAR MIDCAP & SMALLCAP ─────────────────────────────
+  {id:'zomato',name:'Zomato',sub:'NSE · ZOMATO',type:'stock'},
+  {id:'nykaa',name:'Nykaa (FSN E-Commerce)',sub:'NSE · NYKAA',type:'stock'},
+  {id:'paytm',name:'Paytm (One97 Comm)',sub:'NSE · PAYTM',type:'stock'},
+  {id:'policybzr',name:'PB Fintech (Policybazaar)',sub:'NSE · POLICYBZR',type:'stock'},
+  {id:'delhivery',name:'Delhivery',sub:'NSE · DELHIVERY',type:'stock'},
+  {id:'irctc',name:'IRCTC',sub:'NSE · IRCTC',type:'stock'},
+  {id:'rvnl',name:'Rail Vikas Nigam',sub:'NSE · RVNL',type:'stock'},
+  {id:'irfc',name:'IRFC',sub:'NSE · IRFC',type:'stock'},
+  {id:'tejasnet',name:'Tejas Networks',sub:'NSE · TEJASNET',type:'stock'},
+  {id:'Dixon',name:'Dixon Technologies',sub:'NSE · DIXON',type:'stock'},
+  {id:'astral',name:'Astral',sub:'NSE · ASTRAL',type:'stock'},
+  {id:'abcapital',name:'Aditya Birla Capital',sub:'NSE · ABCAPITAL',type:'stock'},
+  {id:'bankbaroda',name:'Bank of Baroda',sub:'NSE · BANKBARODA',type:'stock'},
+  {id:'pnb',name:'Punjab National Bank',sub:'NSE · PNB',type:'stock'},
+  {id:'canarabank',name:'Canara Bank',sub:'NSE · CANBK',type:'stock'},
+  {id:'pidilitind',name:'Pidilite Industries',sub:'NSE · PIDILITIND',type:'stock'},
+  {id:'dmart',name:'DMart (Avenue Supermarts)',sub:'NSE · DMART',type:'stock'},
+  {id:'havells',name:'Havells India',sub:'NSE · HAVELLS',type:'stock'},
+  {id:'marico',name:'Marico',sub:'NSE · MARICO',type:'stock'},
+  {id:'colpal',name:'Colgate-Palmolive India',sub:'NSE · COLPAL',type:'stock'},
+  {id:'godrejcp',name:'Godrej Consumer Products',sub:'NSE · GODREJCP',type:'stock'},
+  {id:'lupin',name:'Lupin',sub:'NSE · LUPIN',type:'stock'},
+  {id:'biocon',name:'Biocon',sub:'NSE · BIOCON',type:'stock'},
+  {id:'torntpharm',name:'Torrent Pharmaceuticals',sub:'NSE · TORNTPHARM',type:'stock'},
+  {id:'muthootfin',name:'Muthoot Finance',sub:'NSE · MUTHOOTFIN',type:'stock'},
+  {id:'cholafin',name:'Cholamandalam Finance',sub:'NSE · CHOLAFIN',type:'stock'},
+  {id:'bandhanbnk',name:'Bandhan Bank',sub:'NSE · BANDHANBNK',type:'stock'},
+  {id:'idfcfirstb',name:'IDFC First Bank',sub:'NSE · IDFCFIRSTB',type:'stock'},
+  {id:'federalbnk',name:'Federal Bank',sub:'NSE · FEDERALBNK',type:'stock'},
+  {id:'pageind',name:'Page Industries',sub:'NSE · PAGEIND',type:'stock'},
+  {id:'voltas',name:'Voltas',sub:'NSE · VOLTAS',type:'stock'},
+  {id:'persistent',name:'Persistent Systems',sub:'NSE · PERSISTENT',type:'stock'},
+  {id:'mphasis',name:'Mphasis',sub:'NSE · MPHASIS',type:'stock'},
+  {id:'coforge',name:'Coforge',sub:'NSE · COFORGE',type:'stock'},
+  {id:'tataelxsi',name:'Tata Elxsi',sub:'NSE · TATAELXSI',type:'stock'},
+  {id:'kpittech',name:'KPIT Technologies',sub:'NSE · KPITTECH',type:'stock'},
+  {id:'trent',name:'Trent',sub:'NSE · TRENT',type:'stock'},
+  {id:'abfrl',name:'Aditya Birla Fashion',sub:'NSE · ABFRL',type:'stock'},
+  {id:'jublfood',name:'Jubilant FoodWorks',sub:'NSE · JUBLFOOD',type:'stock'},
+  {id:'indigo',name:'IndiGo (InterGlobe Aviation)',sub:'NSE · INDIGO',type:'stock'},
+  {id:'spicejet',name:'SpiceJet',sub:'NSE · SPICEJET',type:'stock'},
+  {id:'concor',name:'Container Corporation',sub:'NSE · CONCOR',type:'stock'},
+  {id:'lalpathlab',name:'Dr Lal PathLabs',sub:'NSE · LALPATHLAB',type:'stock'},
+  {id:'metropolis',name:'Metropolis Healthcare',sub:'NSE · METROPOLIS',type:'stock'},
+  {id:'maxhealth',name:'Max Healthcare',sub:'NSE · MAXHEALTH',type:'stock'},
+  {id:'fortis',name:'Fortis Healthcare',sub:'NSE · FORTIS',type:'stock'},
+
+  // ── CRYPTO (INR traded on Indian exchanges) ───────────────
+  {id:'btc',name:'Bitcoin',sub:'Crypto · BTC',type:'crypto'},
+  {id:'eth',name:'Ethereum',sub:'Crypto · ETH',type:'crypto'},
+  {id:'bnb',name:'BNB',sub:'Crypto · BNB',type:'crypto'},
+  {id:'sol',name:'Solana',sub:'Crypto · SOL',type:'crypto'},
+  {id:'xrp',name:'XRP / Ripple',sub:'Crypto · XRP',type:'crypto'},
+  {id:'ada',name:'Cardano',sub:'Crypto · ADA',type:'crypto'},
+  {id:'doge',name:'Dogecoin',sub:'Crypto · DOGE',type:'crypto'},
+  {id:'shib',name:'Shiba Inu',sub:'Crypto · SHIB',type:'crypto'},
+  {id:'matic',name:'Polygon (MATIC)',sub:'Crypto · MATIC',type:'crypto'},
+  {id:'dot',name:'Polkadot',sub:'Crypto · DOT',type:'crypto'},
+  {id:'link',name:'Chainlink',sub:'Crypto · LINK',type:'crypto'},
+  {id:'avax',name:'Avalanche',sub:'Crypto · AVAX',type:'crypto'},
+  {id:'uni',name:'Uniswap',sub:'Crypto · UNI',type:'crypto'},
+  {id:'ltc',name:'Litecoin',sub:'Crypto · LTC',type:'crypto'},
+  {id:'trx',name:'TRON',sub:'Crypto · TRX',type:'crypto'},
+  {id:'atom',name:'Cosmos',sub:'Crypto · ATOM',type:'crypto'},
+  {id:'near',name:'NEAR Protocol',sub:'Crypto · NEAR',type:'crypto'},
+  {id:'ftm',name:'Fantom',sub:'Crypto · FTM',type:'crypto'},
+  {id:'sand',name:'The Sandbox',sub:'Crypto · SAND',type:'crypto'},
+  {id:'mana',name:'Decentraland',sub:'Crypto · MANA',type:'crypto'},
+
+  // ── GOLD & SILVER ─────────────────────────────────────────
+  {id:'gold',name:'Gold (24K)',sub:'Commodity · MCX',type:'commodity'},
+  {id:'gold22',name:'Gold (22K)',sub:'Commodity · MCX',type:'commodity'},
+  {id:'silver',name:'Silver',sub:'Commodity · MCX',type:'commodity'},
+  {id:'silvermini',name:'Silver Mini',sub:'Commodity · MCX',type:'commodity'},
+  {id:'goldguinea',name:'Gold Guinea',sub:'Commodity · MCX',type:'commodity'},
+  {id:'goldpetal',name:'Gold Petal',sub:'Commodity · MCX',type:'commodity'},
+
+  // ── INDIAN ETFs ───────────────────────────────────────────
+  {id:'niftybees',name:'Nifty 50 ETF',sub:'NSE · NIFTYBEES',type:'etf'},
+  {id:'juniorbees',name:'Nifty Next 50 ETF',sub:'NSE · JUNIORBEES',type:'etf'},
+  {id:'bankbees',name:'Bank Nifty ETF',sub:'NSE · BANKBEES',type:'etf'},
+  {id:'itbees',name:'Nifty IT ETF',sub:'NSE · ITBEES',type:'etf'},
+  {id:'goldbees',name:'Gold ETF (Nippon)',sub:'NSE · GOLDBEES',type:'etf'},
+  {id:'sgb',name:'Sovereign Gold Bond',sub:'NSE · SGB',type:'etf'},
+  {id:'silverbees',name:'Silver ETF (Nippon)',sub:'NSE · SILVERETF',type:'etf'},
+  {id:'liquidbees',name:'Liquid ETF',sub:'NSE · LIQUIDBEES',type:'etf'},
+  {id:'cpse',name:'CPSE ETF',sub:'NSE · CPSEETF',type:'etf'},
+  {id:'bharat22',name:'Bharat 22 ETF',sub:'NSE · BHARAT22ETF',type:'etf'},
+  {id:'midcapetf',name:'Nifty Midcap 150 ETF',sub:'NSE · MID150BEES',type:'etf'},
+  {id:'psubnketf',name:'PSU Bank ETF',sub:'NSE · PSUBNKBEES',type:'etf'},
+  {id:'pharmabees',name:'Pharma ETF (Mirae)',sub:'NSE · PHARMABEES',type:'etf'},
+  {id:'infrabees',name:'Infra ETF (Nippon)',sub:'NSE · INFRABEES',type:'etf'},
+  {id:'niftyetf1',name:'Nifty 100 ETF (Kotak)',sub:'NSE · KOTAKNIFTY',type:'etf'},
+  {id:'autoetf',name:'Auto Sector ETF',sub:'NSE · AUTOBEES',type:'etf'},
+  {id:'consumbees',name:'Consumption ETF',sub:'NSE · CONSUMBEES',type:'etf'},
+  {id:'divoppbees',name:'Dividend Opportunities ETF',sub:'NSE · DIVOPPBEES',type:'etf'},
+  {id:'mafang',name:'MAFANG ETF (Mirae)',sub:'NSE · MAFANG',type:'etf'},
+  {id:'hngsngbees',name:'Hang Seng ETF',sub:'NSE · HNGSNGBEES',type:'etf'},
+
+  // ── POPULAR INDIAN SIPs / MUTUAL FUNDS ───────────────────
+  {id:'ppfas',name:'PPFAS Flexi Cap Fund',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'miraeemrg',name:'Mirae Emerging Bluechip',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'axisbluechip',name:'Axis Bluechip Fund',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'sbimagnum',name:'SBI Magnum Midcap Fund',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'hdfcmidcap',name:'HDFC Mid-Cap Opportunities',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'nipponsmall',name:'Nippon Small Cap Fund',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'axisskill',name:'Axis Small Cap Fund',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'kotakflexi',name:'Kotak Flexi Cap Fund',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'miraetaxsav',name:'Mirae Tax Saver Fund (ELSS)',sub:'SIP · ELSS · Direct Growth',type:'sip'},
+  {id:'axislong',name:'Axis Long Term Equity (ELSS)',sub:'SIP · ELSS · Direct Growth',type:'sip'},
+  {id:'dspblackrock',name:'DSP Midcap Fund',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'franklinind',name:'Franklin India Flexi Cap',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'idfcgovt',name:'IDFC Government Securities',sub:'SIP · Debt · Direct Growth',type:'sip'},
+  {id:'hdfcliquid',name:'HDFC Liquid Fund',sub:'SIP · Liquid · Direct Growth',type:'sip'},
+  {id:'sbiliquid',name:'SBI Liquid Fund',sub:'SIP · Liquid · Direct Growth',type:'sip'},
+  {id:'nipponliquid',name:'Nippon Liquid Fund',sub:'SIP · Liquid · Direct Growth',type:'sip'},
+  {id:'kotakeqhybr',name:'Kotak Equity Hybrid Fund',sub:'SIP · Hybrid · Direct Growth',type:'sip'},
+  {id:'hdfcbaladvt',name:'HDFC Balanced Advantage',sub:'SIP · Hybrid · Direct Growth',type:'sip'},
+  {id:'icicibaladvt',name:'ICICI Pru Balanced Advantage',sub:'SIP · Hybrid · Direct Growth',type:'sip'},
+  {id:'sundaram',name:'Sundaram Mid Cap Fund',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'invescogrow',name:'Invesco India Growth Fund',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'canara_rob',name:'Canara Robeco Bluechip',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'utiflexi',name:'UTI Flexi Cap Fund',sub:'SIP · Direct Growth',type:'sip'},
+  {id:'nipponnifty',name:'Nippon Nifty 50 Index Fund',sub:'SIP · Index · Direct Growth',type:'sip'},
+  {id:'utinifty',name:'UTI Nifty 50 Index Fund',sub:'SIP · Index · Direct Growth',type:'sip'},
+  {id:'hdfcindex',name:'HDFC Index Fund Nifty 50',sub:'SIP · Index · Direct Growth',type:'sip'},
+  {id:'motilalnas',name:'Motilal NASDAQ 100 FoF',sub:'SIP · International · Direct',type:'sip'},
+  {id:'miraeusflexi',name:'Mirae US Equity FoF',sub:'SIP · International · Direct',type:'sip'},
+];
+const BADGE={stock:'badge-stock',crypto:'badge-crypto',commodity:'badge-commodity',etf:'badge-etf',sip:'badge-sip'};
+const BLABEL={stock:'Stock',crypto:'Crypto',commodity:'Commodity',etf:'ETF',sip:'SIP'};
+let selectedIds=new Set(), currentFilter='all', currentTF='5Y', holdings=[];
+let googleIdToken=null;
+
+// ── Auth ─────────────────────────────────────────────────
+function signInWithGoogle() {
+  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onLogin });
+  google.accounts.id.prompt(n => {
+    if (n.isNotDisplayed()||n.isSkippedMoment()) {
+      google.accounts.id.renderButton(document.querySelector('.google-btn').parentElement, {theme:'outline',size:'large'});
+    }
+  });
+}
+function onLogin(resp) {
+  googleIdToken = resp.credential;
+  const p = JSON.parse(atob(googleIdToken.split('.')[1]));
+  document.getElementById('userName').textContent = p.name;
+  document.getElementById('userAvatar').src = p.picture||'';
+  sessionStorage.setItem('mp_tok', googleIdToken);
+  sessionStorage.setItem('mp_name', p.name);
+  sessionStorage.setItem('mp_pic', p.picture||'');
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appScreen').style.display='block';
+  renderGrid();
+}
+function signOut() {
+  googleIdToken=null; sessionStorage.clear();
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('appScreen').style.display='none';
+}
+window.addEventListener('DOMContentLoaded', () => {
+  const tok = sessionStorage.getItem('mp_tok');
+  if (tok) {
+    googleIdToken=tok;
+    document.getElementById('userName').textContent=sessionStorage.getItem('mp_name')||'';
+    document.getElementById('userAvatar').src=sessionStorage.getItem('mp_pic')||'';
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('appScreen').style.display='block';
+    renderGrid();
+  }
+});
+
+// ── Nav ──────────────────────────────────────────────────
+function switchNav(sec,el){document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));el.classList.add('active');document.getElementById('sec-'+sec).classList.add('active');}
+function setTF(tf,el){currentTF=tf;document.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+function filterTab(type,el){currentFilter=type;document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderGrid();}
+
+// ── Grid ─────────────────────────────────────────────────
+function renderGrid(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  const f=ASSETS.filter(a=>(currentFilter==='all'||a.type===currentFilter)&&(!q||a.name.toLowerCase().includes(q)||a.sub.toLowerCase().includes(q)));
+  document.getElementById('assetGrid').innerHTML=f.length?f.map(a=>`<div class="asset-card ${selectedIds.has(a.id)?'selected':''}" onclick="toggleAsset('${a.id}')"><div class="asset-name">${a.name}</div><div class="asset-sub">${a.sub}</div><span class="asset-badge ${BADGE[a.type]}">${BLABEL[a.type]}</span></div>`).join(''):'<div style="font-size:13px;color:var(--text-secondary);padding:8px">No assets found</div>';
+}
+function toggleAsset(id){selectedIds.has(id)?selectedIds.delete(id):selectedIds.add(id);renderGrid();updateBtn();}
+function updateBtn(){const btn=document.getElementById('analyzeBtn');const n=selectedIds.size;btn.disabled=n===0;btn.textContent=n?`Analyze ${n} selected asset${n>1?'s':''}`:'Select assets to analyze';}
+function addCustomAsset(){const val=document.getElementById('searchInput').value.trim();if(!val)return;const id='c_'+Date.now();ASSETS.push({id,name:val,sub:'Custom',type:'stock'});selectedIds.add(id);document.getElementById('searchInput').value='';currentFilter='all';document.querySelectorAll('.ftab').forEach((t,i)=>t.classList.toggle('active',i===0));renderGrid();updateBtn();}
+document.getElementById('searchInput')?.addEventListener('input', () => { renderGrid(); showSearchAC(); });
+document.getElementById('searchInput')?.addEventListener('keydown', (e) => handleACKey(e,'search'));
+document.getElementById('searchInput')?.addEventListener('blur', () => setTimeout(()=>hideAC('searchDropdown'),150));
+document.getElementById('p-name')?.addEventListener('input', showPortAC);
+document.getElementById('p-name')?.addEventListener('keydown', (e) => handleACKey(e,'port'));
+document.getElementById('p-name')?.addEventListener('blur', () => setTimeout(()=>hideAC('portDropdown'),150));
+
+const BDGE={stock:'badge-stock',crypto:'badge-crypto',commodity:'badge-commodity',etf:'badge-etf',sip:'badge-sip'};
+const BLBL={stock:'Stock',crypto:'Crypto',commodity:'Commodity',etf:'ETF',sip:'SIP'};
+let acIdx=-1;
+
+function hideAC(id){const el=document.getElementById(id);if(el)el.style.display='none';acIdx=-1;}
+
+function buildAC(matches, rawQ, type){
+  let html = matches.map(a=>`<div class="autocomplete-item" data-id="${a.id}" data-name="${a.name}" data-sub="${a.sub||''}" data-type="${a.type||'sip'}" onmousedown="event.preventDefault()"><div class="autocomplete-item-left"><span class="autocomplete-item-name">${a.name}</span><span class="autocomplete-item-sub">${a.sub}</span></div><span class="autocomplete-badge ${BDGE[a.type]||'badge-sip'}">${BLBL[a.type]||'Fund'}</span></div>`).join('');
+  if(rawQ) html += `<div class="autocomplete-item autocomplete-custom" data-custom="${rawQ}" onmousedown="event.preventDefault()" style="border-top:0.5px solid var(--border-light);"><div class="autocomplete-item-left"><span class="autocomplete-item-name" style="color:var(--blue)">+ Add "${rawQ}" as custom asset</span><span class="autocomplete-item-sub">Any stock, crypto or fund not in the list</span></div></div>`;
+  return html || '<div class="autocomplete-empty">Start typing to search...</div>';
+}
+
+let searchTimer=null, portTimer=null;
+
+async function fetchLiveFunds(q) {
+  try {
+    const resp = await fetch('/api/fundsearch?q='+encodeURIComponent(q));
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return Array.isArray(data) ? data : [];
+  } catch(e) { return []; }
+}
+
+async function showSearchAC(){
+  const rawQ=document.getElementById('searchInput').value.trim();
+  const q=rawQ.toLowerCase();
+  const dd=document.getElementById('searchDropdown');
+  if(!rawQ){dd.style.display='none';return;}
+
+  // Show local matches instantly
+  const local=ASSETS.filter(a=>a.name.toLowerCase().includes(q)||a.sub.toLowerCase().includes(q)).slice(0,7);
+  dd.innerHTML=buildAC(local,rawQ,'search');
+  dd.style.display='block';
+  attachSearchEvents(dd,rawQ);
+
+  // Debounce live fund search for SIPs/ETFs
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async()=>{
+    if(rawQ.length < 3) return;
+    dd.innerHTML='<div class="autocomplete-empty" style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border:2px solid var(--border-light);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0"></div>Searching all funds...</div>';
+    dd.style.display='block';
+    const live = await fetchLiveFunds(rawQ);
+    // Merge: local first, then live results not already in local
+    const localIds = new Set(local.map(a=>a.name.toLowerCase()));
+    const merged = [...local, ...live.filter(f=>!localIds.has(f.name.toLowerCase()))].slice(0,12);
+    dd.innerHTML=buildAC(merged,rawQ,'search');
+    dd.style.display='block';
+    attachSearchEvents(dd,rawQ);
+  }, 350);
+}
+
+function attachSearchEvents(dd, rawQ) {
+  dd.querySelectorAll('.autocomplete-item:not(.autocomplete-custom)').forEach(item=>{
+    item.addEventListener('click',()=>{
+      const id=item.dataset.id;
+      const name=item.dataset.name;
+      const sub=item.dataset.sub||'AMFI · Live';
+      const type=item.dataset.type||'sip';
+      // Add to ASSETS if not already there
+      if(!ASSETS.find(a=>a.id===id)){
+        ASSETS.push({id,name,sub,type});
+      }
+      if(!selectedIds.has(id)){selectedIds.add(id);renderGrid();updateBtn();}
+      document.getElementById('searchInput').value='';
+      dd.style.display='none';
+    });
+  });
+  const customItem=dd.querySelector('.autocomplete-custom');
+  if(customItem) customItem.addEventListener('click',()=>{
+    const val=customItem.dataset.custom;
+    const id='c_'+Date.now();
+    ASSETS.push({id,name:val,sub:'Custom · Search',type:'stock'});
+    selectedIds.add(id); renderGrid(); updateBtn();
+    document.getElementById('searchInput').value='';
+    dd.style.display='none';
+  });
+}
+
+async function showPortAC(){
+  const rawQ=document.getElementById('p-name').value.trim();
+  const q=rawQ.toLowerCase();
+  const dd=document.getElementById('portDropdown');
+  if(!rawQ){dd.style.display='none';return;}
+
+  // Show local matches instantly
+  const local=ASSETS.filter(a=>a.name.toLowerCase().includes(q)||a.sub.toLowerCase().includes(q)).slice(0,7);
+  dd.innerHTML=buildAC(local,rawQ,'port');
+  dd.style.display='block';
+  attachPortEvents(dd,rawQ);
+
+  // Debounce live fund search
+  clearTimeout(portTimer);
+  portTimer = setTimeout(async()=>{
+    if(rawQ.length < 3) return;
+    dd.innerHTML='<div class="autocomplete-empty" style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border:2px solid var(--border-light);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0"></div>Searching all funds...</div>';
+    dd.style.display='block';
+    const live = await fetchLiveFunds(rawQ);
+    const localIds = new Set(local.map(a=>a.name.toLowerCase()));
+    const merged = [...local, ...live.filter(f=>!localIds.has(f.name.toLowerCase()))].slice(0,12);
+    dd.innerHTML=buildAC(merged,rawQ,'port');
+    dd.style.display='block';
+    attachPortEvents(dd,rawQ);
+  }, 350);
+}
+
+function attachPortEvents(dd, rawQ) {
+  dd.querySelectorAll('.autocomplete-item:not(.autocomplete-custom)').forEach(item=>{
+    item.addEventListener('click',()=>{
+      document.getElementById('p-name').value=item.dataset.name;
+      dd.style.display='none';
+      document.getElementById('p-qty').focus();
+    });
+  });
+  const customItem=dd.querySelector('.autocomplete-custom');
+  if(customItem) customItem.addEventListener('click',()=>{
+    document.getElementById('p-name').value=customItem.dataset.custom;
+    dd.style.display='none';
+    document.getElementById('p-qty').focus();
+  });
+}
+
+function handleACKey(e,type){
+  const dd=document.getElementById(type==='search'?'searchDropdown':'portDropdown');
+  if(dd.style.display==='none') return;
+  const items=dd.querySelectorAll('.autocomplete-item');
+  if(!items.length) return;
+  if(e.key==='ArrowDown'){e.preventDefault();acIdx=Math.min(acIdx+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('active',i===acIdx));items[acIdx]?.scrollIntoView({block:'nearest'});}
+  else if(e.key==='ArrowUp'){e.preventDefault();acIdx=Math.max(acIdx-1,0);items.forEach((el,i)=>el.classList.toggle('active',i===acIdx));items[acIdx]?.scrollIntoView({block:'nearest'});}
+  else if(e.key==='Enter'&&acIdx>=0){e.preventDefault();items[acIdx]?.click();acIdx=-1;}
+  else if(e.key==='Escape'){hideAC(type==='search'?'searchDropdown':'portDropdown');}
+}
+
+// ── API ──────────────────────────────────────────────────
+async function callGemini(prompt){
+  if(!googleIdToken) throw new Error('NOT_LOGGED_IN');
+  const resp=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+googleIdToken},body:JSON.stringify({prompt})});
+  const data=await resp.json();
+  if(!resp.ok){const m=data?.error||'Error';if(resp.status===401)throw new Error('AUTH');if(resp.status===429)throw new Error('QUOTA');throw new Error(m);}
+  return (data?.candidates?.[0]?.content?.parts?.[0]?.text||'').replace(/```json|```/g,'').trim();
+}
+function parseJSON(t){try{return JSON.parse(t);}catch(e){const ma=t.match(/\[[\s\S]*\]/);if(ma)try{return JSON.parse(ma[0]);}catch(e){}const mo=t.match(/\{[\s\S]*\}/);if(mo)try{return JSON.parse(mo[0]);}catch(e){}throw new Error('parse');}}
+function errMsg(e){if(e.message==='NOT_LOGGED_IN')return 'Please sign in to use this feature.';if(e.message==='AUTH')return 'Session expired. Please sign out and sign in again.';if(e.message==='QUOTA')return 'Daily limit reached. Try again tomorrow.';return 'Error: '+e.message;}
+function loadHTML(t,tf){return `<div class="loading-wrap"><div class="spinner"></div><div style="font-weight:500;margin-bottom:10px">${t}</div><div class="step-row"><div class="step-dot"></div>Scanning ${tf||''} price history</div><div class="step-row"><div class="step-dot"></div>Checking news &amp; sentiment</div><div class="step-row"><div class="step-dot"></div>Generating verdicts...</div></div>`;}
+
+// ── Analysis ─────────────────────────────────────────────
+async function runAnalysis(){
+  if(!selectedIds.size)return;
+  const btn=document.getElementById('analyzeBtn'); btn.disabled=true;
+  const el=document.getElementById('results');
+  const sel=ASSETS.filter(a=>selectedIds.has(a.id));
+  el.innerHTML=loadHTML(`Analyzing ${sel.length} asset${sel.length>1?'s':''}...`,currentTF);
+  const prompt=`You are a professional investment analyst for Indian investors. Analyze these assets based on past ${currentTF} performance and current market conditions (early 2026).\n\nAssets:\n${sel.map(a=>`- ${a.name} (${a.sub}, ${a.type})`).join('\n')}\n\nReturn ONLY a JSON array, no markdown:\n[{"name":"...","verdict":"BUY","pros":["reason 1","reason 2","reason 3"],"cons":["risk 1","risk 2"],"news_impact":"One sentence on recent news or macro factor.","summary":"One plain-English sentence for a first-time investor."}]\n\nverdict = BUY, HOLD, or SELL only. Short sentences, no jargon. Consider Indian market context.`;
+  try{
+    const analyses=parseJSON(await callGemini(prompt));
+    el.innerHTML=analyses.map(a=>{
+      const vc=a.verdict==='BUY'?'verdict-buy':a.verdict==='SELL'?'verdict-sell':'verdict-hold';
+      return `<div class="result-card"><div class="result-header"><div class="result-name">${a.name}</div><div class="verdict ${vc}">${a.verdict}</div></div><div class="slabel">Reasons to buy</div>${(a.pros||[]).map(p=>`<div class="reason-row"><div class="dot-g"></div><span>${p}</span></div>`).join('')}<div class="slabel">Risks to consider</div>${(a.cons||[]).map(c=>`<div class="reason-row"><div class="dot-r"></div><span>${c}</span></div>`).join('')}<div class="slabel">News &amp; market signal</div><div class="sbox">${a.news_impact||'—'}</div><div class="slabel">Bottom line</div><div class="sbox sbox-bold">${a.summary||'—'}</div></div>`;
+    }).join('');
+  }catch(e){el.innerHTML=`<div class="result-card"><div class="error-box">${errMsg(e)}</div></div>`;}
+  btn.disabled=false; updateBtn();
+}
+
+// ── Portfolio ─────────────────────────────────────────────
+function addHolding(){
+  const name=document.getElementById('p-name').value.trim();
+  const qty=parseFloat(document.getElementById('p-qty').value);
+  const price=parseFloat(document.getElementById('p-price').value);
+  if(!name||isNaN(qty)||isNaN(price)||qty<=0||price<=0){alert('Please fill all fields correctly.');return;}
+  holdings.push({id:Date.now(),name,qty,price,total:qty*price});
+  document.getElementById('p-name').value=''; document.getElementById('p-qty').value=''; document.getElementById('p-price').value='';
+  renderHoldings();
+}
+function removeHolding(id){holdings=holdings.filter(h=>h.id!==id);renderHoldings();}
+function renderHoldings(){
+  const wrap=document.getElementById('holdingsWrap'); const btn=document.getElementById('portBtn');
+  if(!holdings.length){wrap.innerHTML='<div class="empty-state">No holdings yet.</div>';btn.disabled=true;return;}
+  const total=holdings.reduce((s,h)=>s+h.total,0);
+  wrap.innerHTML=`<div class="summary-stats"><div class="stat-card"><div class="stat-label">Holdings</div><div class="stat-value">${holdings.length}</div></div><div class="stat-card"><div class="stat-label">Total invested</div><div class="stat-value">₹${total.toLocaleString('en-IN',{maximumFractionDigits:0})}</div></div><div class="stat-card"><div class="stat-label">Unique assets</div><div class="stat-value">${new Set(holdings.map(h=>h.name)).size}</div></div></div><div class="card" style="padding:0;overflow:hidden"><table class="holdings-table"><thead><tr><th>Asset</th><th>Qty</th><th>Buy price</th><th>Invested</th><th></th></tr></thead><tbody>${holdings.map(h=>`<tr><td style="font-weight:500">${h.name}</td><td>${h.qty}</td><td>₹${h.price.toLocaleString('en-IN')}</td><td>₹${h.total.toLocaleString('en-IN',{maximumFractionDigits:0})}</td><td><button class="del-btn" onclick="removeHolding(${h.id})">×</button></td></tr>`).join('')}</tbody></table></div>`;
+  btn.disabled=false;
+}
+async function runPortfolioAnalysis(){
+  if(!holdings.length)return;
+  const btn=document.getElementById('portBtn'); btn.disabled=true;
+  const el=document.getElementById('portResults');
+  el.innerHTML=loadHTML('Analyzing your portfolio...');
+  const total=holdings.reduce((s,h)=>s+h.total,0);
+  const prompt=`You are a senior investment advisor in India. Analyze this portfolio (early 2026):\n\n${holdings.map(h=>`- ${h.name}: ${h.qty} units @ ₹${h.price} (invested: ₹${h.total.toLocaleString('en-IN')})`).join('\n')}\nTotal: ₹${total.toLocaleString('en-IN')}\n\nReturn ONLY valid JSON:\n{"overall_verdict":"LOOKING GOOD","overall_summary":"2-3 plain English sentences.","holdings_advice":[{"name":"Asset","action":"HOLD","reason":"One sentence."}],"top_concern":"Biggest risk.","top_opportunity":"Best next step."}\n\noverall_verdict: LOOKING GOOD, NEEDS REBALANCING, or HIGH RISK. action: HOLD, ADD MORE, REDUCE, or EXIT.`;
+  try{
+    const r=parseJSON(await callGemini(prompt));
+    const vc=r.overall_verdict==='LOOKING GOOD'?'verdict-buy':r.overall_verdict==='HIGH RISK'?'verdict-sell':'verdict-hold';
+    el.innerHTML=`<div class="result-card"><div class="result-header"><div class="result-name">Portfolio verdict</div><div class="verdict ${vc}">${r.overall_verdict}</div></div><div class="sbox sbox-bold" style="margin-top:4px">${r.overall_summary}</div><div class="slabel">Per-holding advice</div>${(r.holdings_advice||[]).map(h=>`<div class="reason-row"><div class="${h.action==='ADD MORE'?'dot-g':h.action==='EXIT'||h.action==='REDUCE'?'dot-r':'dot-n'}"></div><span><strong>${h.name}</strong> — ${h.action}: ${h.reason}</span></div>`).join('')}<div class="slabel">Top concern</div><div class="sbox">${r.top_concern}</div><div class="slabel">Best next move</div><div class="sbox sbox-bold">${r.top_opportunity}</div></div>`;
+  }catch(e){el.innerHTML=`<div class="result-card"><div class="error-box">${errMsg(e)}</div></div>`;}
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>
